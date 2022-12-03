@@ -1,0 +1,1 @@
+# slzb-06-esphome
