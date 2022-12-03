@@ -1,0 +1,211 @@
+#Name to be used in sensorts IDs
+substitutions:
+  name: "slzb-06-adapter"
+
+#General ESPHome compilation information
+esphome:
+  name: "${name}"
+  name_add_mac_suffix: true
+  project:
+    name: esphome.bluetooth-proxy
+    version: "1.0"
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+#Ethernet connection information
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk_mode: GPIO0_IN
+  phy_addr: 1
+  power_pin: GPIO16
+
+#General purpose ESPHome settings
+## Connection to Home Assistant through API is enabled
+api:
+## Logger is enabled
+logger:
+## OTA firmware updates are available
+ota:
+## Accessible portal with control buttons is available
+web_server:
+  port: 80
+
+#ESPHome Bluetooth_proxy settings - allow to use SLZB-06 as Ethernet-Bluetooth adapter
+dashboard_import:
+  package_import_url: github://esphome/bluetooth-proxies/esp32-generic.yaml@main
+
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 1100ms
+    window: 1100ms
+    active: true
+
+bluetooth_proxy:
+  active: true
+
+button:
+- platform: safe_mode
+  name: Safe Mode Boot
+  entity_category: diagnostic
+
+
+#Serial Bridge Settings, you can change default 6638 TCP port
+external_components:
+- source: github://smlight-dev/esphome-stream-server
+stream_server:
+  uart_id: uart_bus
+  port: 6638
+
+#UART Settings
+uart:
+  id: uart_bus
+  rx_pin: GPIO5
+  tx_pin: GPIO17
+  baud_rate: 115200
+
+#ZIGBEE CONTROL SETTINGS
+## SLZB-06 upteime information as sensor
+text_sensor:
+  - platform: template
+    name: "SLZB-06 Uptime"
+    lambda: |-
+      uint32_t dur = id(uptime_s).state;
+      int dys = 0;
+      int hrs = 0;
+      int mnts = 0;
+      if (dur > 86399) {
+        dys = trunc(dur / 86400);
+        dur = dur - (dys * 86400);
+      }
+      if (dur > 3599) {
+        hrs = trunc(dur / 3600);
+        dur = dur - (hrs * 3600);
+      }
+      if (dur > 59) {
+        mnts = trunc(dur / 60);
+        dur = dur - (mnts * 60);
+      }
+      char buffer[17];
+      sprintf(buffer, "%ud %02uh %02um %02us", dys, hrs, mnts, dur);
+      return {buffer};
+    icon: mdi:clock-start
+    update_interval: 60s
+
+##Uptime generic sensor
+sensor:
+  - platform: uptime
+    id: uptime_s
+    update_interval: 60s
+
+##Status of physical button - sensor
+binary_sensor:
+  - platform: gpio
+    name: "PHYSICAL BUTTON STATE"
+    icon: mdi:toggle-switch
+    id: gpio35btn1
+    pin:
+      number: GPIO35
+      mode:
+        input: true
+      inverted: yes
+    on_press:
+      then:
+        - switch.toggle: modeSwitchTemplate
+
+## Switches
+### ESP32 Restart
+switch:
+  - platform: restart
+    name: "Ethernet (ESP32) Restart"
+### CC2652P Restart
+  - platform: gpio
+    pin: 33
+    id: zRST_gpio
+    inverted: yes
+    restore_mode: ALWAYS_OFF
+  - platform: template
+    name: "Zigbee (CC2652P) Restart"
+    icon: mdi:toggle-switch
+    id: zRST
+    turn_on_action:
+      - switch.turn_on: zRST_gpio
+      - delay: 15ms
+      - switch.turn_off: zRST_gpio
+### Zigbee CC2652P to flash mode switch      
+  - platform: gpio
+    pin: 32
+    name: "Zigbee (CC2652P) flash Mode"
+    icon: mdi:toggle-switch
+    id: zBSL
+    inverted: yes
+    restore_mode: ALWAYS_OFF
+    internal: true
+    
+  - platform: template
+    name: "Zigbee (CC2652P) flash Mode"
+    icon: mdi:cellphone-arrow-down
+    turn_on_action:
+      - script.execute: fw_update_mode
+    turn_off_action:
+      - switch.toggle: zRST
+
+### Mode LAN/USB switch
+  - platform: template
+    name: "SLZB-06 MODE SWITCH (LAN|OFF| / USB|ON|)"
+    id: modeSwitchTemplate
+    turn_on_action:
+      - switch.turn_on: gpio12LED1
+      - switch.turn_on: gpio4Select
+      - switch.template.publish:
+          id: modeSwitchTemplate
+          state: ON
+    turn_off_action:
+      - switch.turn_off: gpio12LED1
+      - switch.turn_off: gpio4Select
+      - switch.template.publish:
+          id: modeSwitchTemplate
+          state: OFF
+
+  - platform: gpio
+    name: "DEVICE MODE SWITCH (LAN|OFF| / USB|ON|) [GPIO4]"
+    restore_mode: ALWAYS_OFF
+    icon: mdi:toggle-switch
+    internal: true
+    id: gpio4Select
+    pin:
+      number: GPIO4
+
+### LEDs swithces
+  - platform: gpio
+    name: "DEVICE MODE LED (LAN|OFF| / USB|ON|) [GPIO12]"
+    restore_mode: ALWAYS_OFF
+    icon: mdi:toggle-switch
+    id: gpio12LED1
+    pin:
+      number: GPIO12
+
+  - platform: gpio
+    name: "DEVICE POWER LED [GPIO14]"
+    restore_mode: ALWAYS_ON
+    icon: mdi:toggle-switch
+    id: gpio14LED2
+    pin:
+      number: GPIO14
+
+script:
+  - id: fw_update_mode
+    then:
+      - switch.turn_on: zBSL
+      - delay: 1s
+      - switch.turn_on: zRST_gpio
+      - delay: 1s
+      - switch.turn_off: zRST_gpio
+      - logger.log: "Wait 1 seconds for Zigbee chip to be ready"
+      - delay: 1s
+      - switch.turn_off: zBSL
+      - logger.log: "Update Zigbee CC2652P with your Z-Stack firmware now!"
