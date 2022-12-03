@@ -105,7 +105,7 @@ sensor:
 ##Status of physical button - sensor
 binary_sensor:
   - platform: gpio
-    name: "PHYSICAL BUTTON STATE"
+    name: "Physical button status"
     icon: mdi:toggle-switch
     id: gpio35btn1
     pin:
@@ -121,7 +121,7 @@ binary_sensor:
 ### ESP32 Restart
 switch:
   - platform: restart
-    name: "Ethernet (ESP32) Restart"
+    name: "3.1. Ethernet (ESP32) Restart"
 ### CC2652P Restart
   - platform: gpio
     pin: 33
@@ -129,7 +129,7 @@ switch:
     inverted: yes
     restore_mode: ALWAYS_OFF
   - platform: template
-    name: "Zigbee (CC2652P) Restart"
+    name: "3.2. Zigbee (CC2652P) Restart"
     icon: mdi:toggle-switch
     id: zRST
     turn_on_action:
@@ -139,7 +139,7 @@ switch:
 ### Zigbee CC2652P to flash mode switch      
   - platform: gpio
     pin: 32
-    name: "Zigbee (CC2652P) flash Mode"
+    name: "Zigbee (CC2652P) flash Mode internal"
     icon: mdi:toggle-switch
     id: zBSL
     inverted: yes
@@ -156,7 +156,7 @@ switch:
 
 ### Mode LAN/USB switch
   - platform: template
-    name: "SLZB-06 MODE SWITCH (LAN|OFF| / USB|ON|)"
+    name: "1. SLZB-06 MODE SWITCH (LAN|OFF| / USB|ON|)"
     id: modeSwitchTemplate
     turn_on_action:
       - switch.turn_on: gpio12LED1
@@ -182,7 +182,7 @@ switch:
 
 ### LEDs swithces
   - platform: gpio
-    name: "DEVICE MODE LED (LAN|OFF| / USB|ON|) [GPIO12]"
+    name: "2.1. LED - device mode (Blue)"
     restore_mode: ALWAYS_OFF
     icon: mdi:toggle-switch
     id: gpio12LED1
@@ -190,7 +190,7 @@ switch:
       number: GPIO12
 
   - platform: gpio
-    name: "DEVICE POWER LED [GPIO14]"
+    name: "2.2. LED - power (Yellow)"
     restore_mode: ALWAYS_ON
     icon: mdi:toggle-switch
     id: gpio14LED2
