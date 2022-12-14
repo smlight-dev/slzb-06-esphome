@@ -37,7 +37,7 @@ web_server:
 
 #ESPHome Bluetooth_proxy settings - allow to use SLZB-06 as Ethernet-Bluetooth adapter
 dashboard_import:
-  package_import_url: github://esphome/bluetooth-proxies/slzb-06-poe-ethernet-zigbee-bt-usb-wifi.yaml@main
+  package_import_url: github://smlight-dev/slzb-06-esphome/slzb-06-esphome-btproxy.yaml@main
 
 esp32_ble_tracker:
   scan_parameters:
